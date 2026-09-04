@@ -1,0 +1,26 @@
+# Environment variables / secrets
+.env
+.streamlit/secrets.toml
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Credentials / JSON keys
+*.json
+!data/*.json

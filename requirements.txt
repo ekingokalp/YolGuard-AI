@@ -1,0 +1,11 @@
+streamlit==1.45.1
+requests==2.32.3
+pandas==2.2.3
+python-dotenv==1.1.0
+folium==0.19.5
+streamlit-folium==0.25.0
+astral==3.2
+google-genai==1.16.1
+gspread==6.2.0
+google-auth==2.40.2
+pytest==8.3.5

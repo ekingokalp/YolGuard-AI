@@ -1,0 +1,5 @@
+id,name,lat,lon,severity,note
+RW001,İstanbul Anadolu yakası bakım çalışması,40.986,29.117,orta,Demo veri: yoğun saatlerde gecikme yaratabilir.
+RW002,Bolu geçişi yol bakım noktası,40.739,31.608,yüksek,Demo veri: uzun yol rotalarında dikkat.
+RW003,Ankara çevre yolu bakım noktası,39.929,32.852,düşük,Demo veri: kısa süreli çalışma.
+RW004,Erzurum-Ağrı hattı çalışma noktası,39.783,42.271,orta,Demo veri: hava koşuluyla birlikte risk artabilir.
