@@ -8,6 +8,16 @@ The core score is produced by a transparent rule-based risk engine. **Google Gem
 
 > **Note:** YolGuard AI is a decision-support prototype. It does not provide a safety guarantee and should not replace official traffic, weather, navigation or emergency information.
 
+## Application Preview
+
+![YolGuard AI departure-time analysis](assets/yolguard-analysis.png)
+
+*Departure-time comparison showing the recommended departure, calculated risk score, route distance and estimated travel duration.*
+
+![YolGuard AI route analysis](assets/yolguard-route-map.png)
+
+*Route visualization with the decision summary, major risk factors and demo roadwork checks.*
+
 ---
 
 ## Key Features
