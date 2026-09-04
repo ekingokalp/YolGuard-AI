@@ -1,39 +1,120 @@
 # YolGuard AI
 
-**YolGuard AI**, klasik navigasyon uygulaması değil; rota öncesi karar destek uygulamasıdır. Başlangıç ve varış adresine göre rota süresi/mesafesi, hava durumu, güneş kamaşması, araç tipi, sürücü tecrübesi, yolcu profili ve masraf varsayımlarını birlikte değerlendirir. Sonuçta 0–100 arasında risk skoru, en uygun çıkış saati, hazırlık listesi ve yapay zekâ destekli yolculuk raporu üretir.
+**AI-assisted pre-trip risk assessment and decision-support system built with Python and Streamlit.**
 
-## 1. Proje kapsamı
+YolGuard AI is a web-based prototype designed to support **pre-trip decision making** rather than turn-by-turn navigation. It combines route characteristics, weather conditions, sun-glare exposure, vehicle type, driver experience, passenger profile, trip duration and other constraints to compare departure alternatives and generate a **0–100 travel risk score**.
 
-Uygulama şunları yapar:
+The core score is produced by a transparent rule-based risk engine. **Google Gemini is optional** and is used only to turn the calculated results into a more readable, personalized travel report; the application still works without an API key.
 
-- Başlangıç ve varış adresini koordinata çevirir.
-- Rota mesafesi ve tahmini süre hesaplar.
-- Seçilen çıkış saatlerini tek tek karşılaştırır.
-- Rota orta noktasındaki saatlik hava tahminini alır.
-- Güneşin rota yönüne göre sürücüyü rahatsız etme riskini hesaplar.
-- Araç türü, sürücü tecrübesi, bebek/çocuk/evcil hayvan gibi değişkenleri hesaba katar.
-- Elektrikli araç seçilirse menzil riskini hesaba katar.
-- Yaklaşık yakıt/enerji, yemek ve konaklama maliyeti hesaplar.
-- Risk bileşenlerini grafikle gösterir.
-- Harita üzerinde rotayı gösterir.
-- Sonucu CSV'ye kaydeder.
-- İstenirse Google Sheets'e de kaydedebilir.
-- Gemini API anahtarı verilirse AI raporu üretir; anahtar yoksa yerel şablonlu rapor üretir.
+> **Note:** YolGuard AI is a decision-support prototype. It does not provide a safety guarantee and should not replace official traffic, weather, navigation or emergency information.
 
-## 2. Kullanılan servisler
+---
 
-Bu proje mümkün olduğunca ücretsiz/anahtarsız kaynaklarla çalışacak şekilde tasarlandı:
+## Key Features
 
-- **Nominatim / OpenStreetMap:** adres → koordinat
-- **OSRM public demo server:** sürüş rotası, mesafe ve süre
-- **Open‑Meteo:** saatlik hava tahmini
-- **Astral:** güneş azimutu ve yükseklik açısı
-- **Gemini API:** opsiyonel yapay zekâ raporu
-- **Google Sheets:** opsiyonel kayıt entegrasyonu
+- Compares multiple departure times for the same journey
+- Calculates route distance and estimated driving time
+- Uses hourly weather forecasts near the route midpoint
+- Evaluates sun-glare risk from route direction and solar position
+- Incorporates vehicle type and driver experience into the risk model
+- Considers passenger count, baby/child/pet travel constraints
+- Includes electric-vehicle range considerations
+- Estimates fuel/energy, food and accommodation costs
+- Displays the route on an interactive map
+- Explains major risk drivers and generates a preparation checklist
+- Produces an optional Gemini-assisted travel report
+- Falls back to a local template report when Gemini is unavailable
+- Logs analysis results locally to CSV
+- Supports optional Google Sheets logging
+- Uses fallback geocoding/routing behavior to improve demo resilience
 
-> Not: Nominatim ve OSRM kamu servisleri yoğun/ticari kullanım için uygun değildir. Ödev demosu için yeterlidir. Gerçek ürünleşmede Google Maps Platform, OpenRouteService veya self-host OSRM daha doğru olur.
+---
 
-## 3. Klasör yapısı
+## How It Works
+
+```mermaid
+flowchart LR
+    A[Origin & Destination] --> B[Geocoding]
+    B --> C[Route Analysis]
+    C --> D[Weather]
+    C --> E[Sun Position]
+    F[Driver & Vehicle Profile] --> H[Risk Engine]
+    G[Trip Constraints] --> H
+    D --> H
+    E --> H
+    C --> H
+    H --> I[0-100 Risk Score]
+    I --> J[Departure-Time Comparison]
+    I --> K[Checklist & Cost Estimate]
+    I --> L[Optional Gemini Report]
+```
+
+For each selected departure time, YolGuard AI evaluates the trip independently. The alternative with the lowest calculated risk is presented as the preferred departure option together with the underlying risk components and recommendations.
+
+---
+
+## Risk Assessment Model
+
+The risk engine is intentionally separate from the generative-AI layer. This makes the main decision logic inspectable and allows the application to operate even when no AI API is configured.
+
+### Base weighted components
+
+| Component | Weight |
+|---|---:|
+| Weather conditions | 25% |
+| Route length / duration | 25% |
+| Driver / vehicle profile | 35% |
+| Sun glare | 10% |
+| EV / additional factor | 5% |
+
+The model also applies **hard safety floors** to combinations where a simple weighted average would understate risk, such as vehicle-capacity violations or selected high-risk motorcycle scenarios.
+
+### Risk categories
+
+| Score | Category |
+|---:|---|
+| 0–34 | Low |
+| 35–54 | Moderate |
+| 55–74 | High |
+| 75–100 | Very High |
+
+The application also returns the major reasons contributing to the score so the result is not presented as a black box.
+
+---
+
+## Data Sources and Integrations
+
+| Service / Library | Purpose |
+|---|---|
+| OpenStreetMap / Nominatim | Address geocoding |
+| Open-Meteo Geocoding | Fallback place geocoding |
+| Komoot Photon | Additional geocoding fallback |
+| OSRM public server | Driving route, distance and duration |
+| Open-Meteo | Hourly weather forecast |
+| Astral | Solar azimuth and elevation |
+| Folium / streamlit-folium | Interactive route map |
+| Google Gemini | Optional natural-language travel report |
+| Google Sheets | Optional analysis logging |
+
+A small local Türkiye coordinate database and direct latitude/longitude input are also supported for more resilient demonstrations.
+
+---
+
+## Technology Stack
+
+- **Python**
+- **Streamlit**
+- **Pandas**
+- **Requests**
+- **Folium**
+- **Astral**
+- **Google Gen AI SDK**
+- **gspread / Google Auth**
+- **pytest**
+
+---
+
+## Project Structure
 
 ```text
 YolGuardAI/
@@ -45,8 +126,6 @@ YolGuardAI/
 │   └── config.toml
 ├── data/
 │   └── demo_roadworks.csv
-├── docs/
-│   └── teslim_dokumani_taslak.md
 ├── modules/
 │   ├── ai_advisor.py
 │   ├── checklist.py
@@ -60,247 +139,204 @@ YolGuardAI/
 │   ├── sun.py
 │   ├── utils.py
 │   └── weather.py
-└── tests/
-    └── test_risk_model.py
+├── tests/
+│   └── test_risk_model.py
+├── run_mac_linux.sh
+└── run_windows.ps1
 ```
 
-## 4. Kurulum - VS Code
+---
 
-### 4.1. Projeyi açın
+## Installation
 
-1. ZIP dosyasını çıkarın.
-2. VS Code'u açın.
-3. **File > Open Folder** yoluyla `YolGuardAI` klasörünü seçin.
-
-### 4.2. Terminal açın
-
-VS Code içinde:
+### 1. Clone the repository
 
 ```bash
-Terminal > New Terminal
+git clone <repository-url>
+cd YolGuard-AI
 ```
 
-### 4.3. Sanal ortam oluşturun
+Alternatively, download the repository as a ZIP file and extract it.
 
-macOS / Linux:
+### 2. Create a virtual environment
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-Windows PowerShell:
+**Windows PowerShell**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Windows'ta izin hatası alırsanız PowerShell'i yönetici olarak açmadan şu komut yardımcı olabilir:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
-
-### 4.4. Paketleri yükleyin
+**macOS / Linux**
 
 ```bash
-pip install --upgrade pip
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4.5. Ortam değişkenlerini hazırlayın
+### 4. Configure environment variables
 
-`.env.example` dosyasını kopyalayıp `.env` yapın.
+Copy `.env.example` as `.env`.
 
-macOS / Linux:
+**Windows PowerShell**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+**macOS / Linux**
 
 ```bash
 cp .env.example .env
 ```
 
-Windows PowerShell:
+The application can run without Gemini or Google Sheets credentials.
 
-```powershell
-copy .env.example .env
-```
+---
 
-Gemini kullanmayacaksanız `.env` dosyasını boş bırakabilirsiniz. Uygulama yine çalışır.
+## Optional Configuration
 
-### 4.6. Uygulamayı çalıştırın
+### Gemini
 
-```bash
-streamlit run app.py
-```
-
-Tarayıcıda genelde şu adres açılır:
-
-```text
-http://localhost:8501
-```
-
-## 5. Kurulum - PyCharm
-
-1. PyCharm'ı açın.
-2. **Open** ile `YolGuardAI` klasörünü seçin.
-3. Sağ alt veya ayarlar kısmından Python interpreter seçin.
-4. Yeni sanal ortam oluşturun: `.venv`.
-5. PyCharm terminalinde şunu çalıştırın:
-
-```bash
-pip install -r requirements.txt
-```
-
-6. Terminalden uygulamayı başlatın:
-
-```bash
-streamlit run app.py
-```
-
-PyCharm'da doğrudan `Run app.py` yapmak yerine terminalden `streamlit run app.py` çalıştırmak gerekir. Çünkü Streamlit uygulamaları normal Python script gibi başlatılmaz.
-
-## 6. Gemini API ayarı
-
-Gemini API zorunlu değildir. Ama yapay zekâ entegrasyonunu göstermek için önerilir.
-
-1. Google AI Studio üzerinden API key alın.
-2. `.env` dosyasında şu satırı doldurun:
+Add a Google AI Studio API key to `.env`:
 
 ```env
-GEMINI_API_KEY=buraya_api_key_yazin
+GEMINI_API_KEY=your_api_key
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-3. Uygulamayı yeniden başlatın:
+If no Gemini key is provided, YolGuard AI automatically generates a local template-based report instead.
 
-```bash
-streamlit run app.py
-```
+### Google Sheets
 
-API anahtarı yoksa uygulama şablonlu rapor üretir. Bu sayede demo günü anahtar sorunu olsa bile proje çalışır.
-
-## 7. Google Sheets entegrasyonu
-
-Bu bölüm opsiyoneldir. Ödev metninde “mümkünse Google Sheets entegrasyonu” dendiği için uygulamada destek vardır.
-
-Genel adımlar:
-
-1. Google Cloud Console'dan bir proje oluşturun.
-2. Google Sheets API ve Google Drive API'yi etkinleştirin.
-3. Service Account oluşturun.
-4. JSON anahtar dosyasını indirin.
-5. JSON dosyasını proje klasörüne koyun. Örnek: `service_account.json`
-6. `.env` dosyasına şunu yazın:
+To enable optional Google Sheets logging:
 
 ```env
 GOOGLE_SERVICE_ACCOUNT_FILE=service_account.json
 GOOGLE_SHEET_NAME=YolGuardAI_Logs
 ```
 
-7. Uygulamayı tekrar çalıştırın.
+Do **not** commit service-account credentials or real API keys to the repository.
 
-Uygulama analiz sonuçlarını hem yerel CSV'ye hem de Google Sheets'e kaydetmeye çalışır. Google Sheets ayarlanmazsa yerel CSV kaydı devam eder.
+### Nominatim User-Agent
 
-## 8. Test çalıştırma
+For public Nominatim requests, configure an identifying user agent:
 
-Kurulumdan sonra:
+```env
+NOMINATIM_USER_AGENT=YolGuardAI/1.0 (your-email@example.com)
+```
+
+---
+
+## Running the Application
+
+```bash
+streamlit run app.py
+```
+
+Streamlit will normally open the application at:
+
+```text
+http://localhost:8501
+```
+
+The repository also includes helper scripts for Windows and macOS/Linux.
+
+---
+
+## Example Workflow
+
+1. Enter an origin and destination.
+2. Select a travel date and several candidate departure times.
+3. Choose the vehicle type and driver-experience level.
+4. Enter passenger and trip constraints.
+5. Run the analysis.
+6. Compare departure alternatives by risk score.
+7. Review:
+   - route distance and duration,
+   - weather conditions,
+   - sun-glare exposure,
+   - risk components and reasons,
+   - estimated trip cost,
+   - preparation checklist,
+   - optional AI-generated report.
+
+---
+
+## Testing
+
+Run the automated tests with:
 
 ```bash
 pytest
 ```
 
-Sadece syntax kontrolü için:
+For a basic syntax check:
 
 ```bash
 python -m py_compile app.py modules/*.py
 ```
 
-## 9. Demo senaryosu
+The included tests cover representative low/high-risk comparisons, EV-range behavior, vehicle-capacity rules and long-distance rookie-motorcycle scenarios.
 
-Örnek giriş:
+---
 
-- Başlangıç: `Gebze, Kocaeli`
-- Varış: `Ağrı Merkez`
-- Araç tipi: `Motosiklet`
-- Sürücü tecrübesi: `Acemi`
-- Toplam kişi sayısı: `1` veya risk testi için `4`
-- Çıkış saatleri: `06:00, 08:00, 10:00, 12:00, 16:00`
-- Günlük sürüş limiti: `6 saat`
-- Yakıt fiyatı: `45 TL/L`
-- Tüketim: `3.5 L/100 km`
+## Design Decisions
 
-Beklenen çıktı:
+### Transparent scoring before generative AI
 
-- En düşük riskli çıkış saati
-- Risk skoru ve kategorisi
-- Hava/güneş/araç/sürücü kaynaklı risk gerekçeleri
-- Harita
-- AI yolculuk raporu
-- Hazırlık listesi
-- Tahmini maliyet
-- CSV / opsiyonel Sheets kaydı
+The risk score is calculated by deterministic application logic rather than by a language model. Gemini receives the already-computed trip context and is used only as an optional explanation layer.
 
-## 10. Risk skoru mantığı
+### Graceful fallbacks
 
-Toplam skor 0–100 aralığındadır. Temel bileşenler:
+The project includes fallbacks for several external dependencies:
 
-- Hava durumu: %25
-- Rota/süre: %25
-- Sürücü/araç profili: %35
-- Güneş kamaşması: %10
-- Elektrikli araç/ek faktör: %5
-- Güvenlik/kapasite uyumu: Gerektiğinde minimum risk eşiği uygulayan kural tabanlı düzeltme
+- alternate geocoding providers,
+- local coordinates for selected Türkiye locations,
+- coordinate input,
+- approximate route estimation if OSRM is unavailable,
+- conservative default weather data if weather retrieval fails,
+- local report generation if Gemini is not configured or fails.
 
-v6 sürümünde risk modeli daha katı hale getirilmiştir. Motosiklet için toplam 2 kişi, otomobil/elektrikli otomobil için toplam 5 kişi demo güvenlik kapasitesi kabul edilir. Kapasite aşımı, acemi motosiklet sürücüsüyle uzun rota, bebek/çocuk/evcil hayvan ile motosiklet kombinasyonu ve günlük sürüş limitinin ciddi aşılması durumlarında ağırlıklı ortalama tek başına kullanılmaz; minimum risk eşiği uygulanır.
+These choices allow the application to remain usable even when a public demo service is temporarily unavailable.
 
-Risk kategorileri:
+---
 
-- 0–34: Düşük
-- 35–54: Orta
-- 55–74: Yüksek
-- 75–100: Çok yüksek
+## Current Limitations
 
-Model kesin güvenlik garantisi vermez; karar destek amacı taşır.
+- The OSRM public server does not provide real-time traffic conditions.
+- Roadwork information is currently based on a small demo CSV dataset rather than a live official feed.
+- Weather forecasts are estimates and can change.
+- Route weather is represented using a selected point near the route rather than a full route-wide meteorological model.
+- The risk weights and safety rules are prototype decision-support heuristics; they are not a validated road-safety model.
+- Public geocoding/routing services may impose usage limits or availability restrictions.
+- The current user interface and generated report are primarily in Turkish.
 
-## 11. Sunumda nasıl anlatılır?
+For production use, the project would require validated safety methodology, official/real-time road and traffic data, production-grade routing infrastructure, stronger input validation, monitoring and broader automated test coverage.
 
-Kısa anlatım:
+---
 
-> YolGuard AI, kullanıcının yolculuk öncesi daha güvenli ve bilinçli karar verebilmesi için geliştirilmiş web tabanlı bir karar destek sistemidir. Uygulama, rota, hava durumu, güneş kamaşması, araç tipi, sürücü tecrübesi, yolcu profili ve masraf bilgilerini birlikte değerlendirerek risk skoru üretir. En uygun çıkış saatini önerir ve yapay zekâ destekli kişisel yolculuk raporu hazırlar.
+## Future Improvements
 
-Google Maps farkı:
+- Live traffic and official roadwork-data integration
+- Route-segment weather analysis instead of a single representative point
+- Persistent user profiles and saved trips
+- Expanded automated test suite
+- Multilingual user interface
+- Production deployment with managed secrets
+- Data-driven calibration of risk weights using historical travel/safety data
 
-> Google Maps çoğunlukla navigasyon ve rota süresi verir. YolGuard AI ise rota öncesi risk, hazırlık, güneş etkisi, sürücü profili, bebek/çocuk durumu ve maliyet gibi unsurları birleştirerek karar desteği sunar.
+---
 
-## 12. Sınırlılıklar
+## Author
 
-- OSRM demo server gerçek zamanlı trafik içermez.
-- Demo yol çalışmaları CSV'den gelir; gerçek zamanlı resmi API değildir.
-- Hava durumu tahmini kesinlik taşımaz.
-- Risk skoru akademik/demo amaçlı ağırlıklandırma modelidir.
-- Gerçek ürünleşmede güvenlik, veri doğrulama, resmi trafik/yol çalışması verileri ve profesyonel harita API'leri gerekir.
+**Ekin Gökalp**
 
-## 403 Forbidden / Nominatim adres çözümleme hatası
-
-Nominatim kamu sunucusu bazen `403 Forbidden` döndürebilir. Bunun en yaygın nedeni, isteğin uygulamayı tanıtan uygun `User-Agent` başlığı taşımaması veya kamu servisi kullanım politikasına takılmasıdır. Bu sürümde geocoding modülü güncellendi: önce Nominatim denenir, hata alınırsa Komoot Photon yedek geocoder olarak kullanılır. Yine de `.env` dosyanıza kendi iletişim bilginizi içeren bir `NOMINATIM_USER_AGENT` yazmanız önerilir:
-
-```env
-NOMINATIM_USER_AGENT=YolGuardAI-StudentProject/1.0 (adiniz@ornek.com)
-```
-
-Uygulamayı yeniden başlatmadan `.env` değişikliği aktif olmaz.
-
-## 11. Adres çözümleme hata notu
-
-Nominatim bazen `403 Forbidden`, Photon ise bazı sorgularda `400 Bad Request` döndürebilir. Bu v3 sürümünde uygulama önce Türkiye şehir/ilçe adlarını yerel demo koordinat tabanından çözmeye çalışır. Bu yüzden `Gebze, Kocaeli`, `Ağrı Merkez`, `İzmir`, `Bahçeşehir` gibi demo sorguları dış servis engeline takılmadan çalışır.
-
-Tam adres çözümlenemezse şu iki pratik yöntemden biri kullanılabilir:
-
-1. Adresi şehir/ilçe düzeyinde yazın: `Gebze, Kocaeli`, `Bahçeşehir, İstanbul`, `Ağrı Merkez`.
-2. Doğrudan koordinat girin: `40.8028, 29.4307`.
-
-Bu uygulama navigasyon hassasiyeti değil, yolculuk öncesi risk ve karar destek demosu amaçladığı için şehir/ilçe merkezi koordinatları final gösterimi için yeterlidir.
-
-## Streamlit grafik/Altair hatası hakkında
-
-Bazı Python 3.14 + Streamlit + Altair kurulumlarında `st.bar_chart` çağrısı `unexpected keyword argument 'closed'` hatasına yol açabiliyor. Bu proje sürümünde risk bileşenleri grafiği Altair kullanmadan HTML/CSS bar görünümüyle çizildi. Bu nedenle ek bir grafik paketi kurmanız gerekmez.
+YolGuard AI was developed as a Python/Streamlit decision-support software project combining API integration, rule-based risk modelling, data processing, visualization and optional generative AI.
